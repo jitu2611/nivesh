@@ -30,6 +30,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { demoResearch, demoSleeve } from "@/lib/demo-data";
 import type { BotSleeve, ResearchWorkflow } from "@/lib/types";
 
 const formatCurrency = (value: number) => new Intl.NumberFormat("en-IN", {
@@ -67,6 +68,12 @@ export default function AgentTradingDashboard() {
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      setSleeve(demoSleeve);
+      setResearch(demoResearch);
+      setLoading(false);
+      return;
+    }
     try {
       const [sleeveResponse, researchResponse] = await Promise.all([
         fetch("/api/bot/portfolio", { cache: "no-store" }),

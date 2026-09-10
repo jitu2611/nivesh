@@ -1,65 +1,149 @@
 # Nivesh
 
-A cautious, multi-agent investment workspace for Indian markets. The personal portfolio remains focused on evidence-backed delivery investing; the isolated `/agent` sleeve is a paper-only NIFTY long-options laboratory.
+<p align="center">
+  <strong>A cautious, multi-agent investment workspace for Indian markets.</strong><br />
+  Portfolio intelligence, current research, deterministic risk controls and an isolated NIFTY options laboratory.
+</p>
 
-## Current milestone
+<p align="center">
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-111111?logo=nextdotjs" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Zerodha Kite" src="https://img.shields.io/badge/Kite-MCP-E84A4A" />
+  <img alt="Execution mode" src="https://img.shields.io/badge/execution-simulation-D39E30" />
+  <img alt="Repository visibility" src="https://img.shields.io/badge/repository-private-5B6573" />
+</p>
 
-- Modern responsive dashboard
-- Configurable bot capital and visible risk limits
-- Portfolio, opportunity, news, decision and agent views
-- Bull/bear debate workspace
-- India market movers and market pulse
-- Real Kite MCP login flow, portfolio synchronization and authorization status
-- On-demand multi-agent research powered by the pi SDK and current web/Kite tools
-- Structured Scout, Pulse, bull, bear and portfolio-verdict reports with source links
-- Server-side read-only Kite tool policy; order tools are blocked by allowlist and interception
-- Dedicated `/agent` trading lab with a persistent bot-managed sleeve, capital curve, positions, research intent and risk-engine audit trail
-- NIFTY long-option paper engine with exact NFO contract/lot validation, current Kite marks, simulated slippage/charges and bot-only attribution
-- Simulated two-leg OCO GTT exits with predefined stop-loss and target; all equities, other indices, futures, shorts and option writing are rejected
-- Simulation-first status throughout the UI
+> The screenshots below use fictional documentation fixtures. They contain no brokerage account data, real holdings, credentials or live trading signals.
 
-Authenticated Kite holdings, last prices, unrealised P&L and available equity cash are now loaded read-only. Performance history, opportunities, agent reports, market movers and news remain illustrative until their respective live-data milestones.
+## Dashboard
+
+The main workspace combines the protected personal portfolio with capital controls, opportunities, market context and access to the isolated agent lab.
+
+![Sanitized Nivesh dashboard showing portfolio metrics, opportunities and market context](docs/images/dashboard.png)
+
+## Agent trading lab
+
+`/agent` tracks the dedicated bot sleeve independently from existing holdings: marked-to-market capital, paper positions, research verdicts, GTT exit plans and the risk-engine audit trail.
+
+![Sanitized Nivesh agent lab showing a fictional NIFTY option paper position](docs/images/agent-lab.png)
+
+## Architecture
+
+Research and execution are intentionally separated. Pi agents can collect evidence and submit schema-validated reports, but they cannot call brokerage execution tools. Kavach applies deterministic policy before anything reaches the paper ledger or a future approval boundary.
+
+![Nivesh architecture diagram](docs/images/architecture.svg)
+
+## Current capabilities
+
+- Responsive portfolio and market dashboard
+- Configurable, persistent bot-capital sleeve
+- Official Kite MCP authentication and read-only portfolio synchronization
+- No-store responses for sensitive portfolio APIs
+- On-demand research powered by independent Pi SDK sessions
+- Pulse, Scout, Asha, Virodh, Niti and Kavach specialist roles
+- Current web/Kite evidence with structured, source-linked reports
+- Tool-call allowlists and interception around every research session
+- Dedicated `/agent` performance and decision workspace
+- NIFTY long-option paper engine
+- Exact NFO contract and complete lot-size validation
+- Simulated costs, slippage, stop-losses, targets and time exits
+- Simulated two-leg OCO GTT protection using `NRML`
+- Explicit executed, rejected and no-action audit records
+- Existing Kite holdings protected from bot attribution and selling
+
+## NIFTY options mandate
+
+The isolated agent sleeve currently permits only:
+
+- Long NIFTY calls or puts
+- One open position at a time
+- Exact NFO option contracts
+- A complete lot that fits the configured capital and reserve
+- A stop-loss and target defined before entry
+- A simulated two-leg OCO GTT exit
+
+It rejects equities, futures, BANKNIFTY, FINNIFTY, MIDCPNIFTY, short positions, option writing and incomplete lots.
+
+## Safety model
+
+1. Research agents never receive brokerage credentials or order tools.
+2. Current quotes, contract metadata, capital and research freshness are validated outside the model.
+3. A deterministic risk engine can veto every proposal.
+4. The bot ledger attributes only its own positions and trades.
+5. Runtime reports, account settings and portfolio snapshots stay under `.nivesh-data/`, which is Git-ignored.
+6. Environment files and credentials are excluded from version control.
+7. Live execution remains behind a server-side kill switch and is disabled by default.
 
 ## Run locally
 
 ```bash
+git clone https://github.com/jitu2611/nivesh.git
+cd nivesh
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Safety model
-
-1. Research agents never receive brokerage credentials.
-2. A deterministic risk engine can veto every proposal.
-3. Execution is a separate service and will require explicit approval.
-4. Quotes, holdings, cash and open orders must be refreshed before any order.
-5. Live orders remain disabled until authentication, persistence, audit logs and reconciliation are implemented and tested.
-
-## Planned architecture
-
-- Next.js/TypeScript web application
-- Python/FastAPI analysis and agent workers
-- PostgreSQL decision journal and portfolio snapshots
-- Scheduled India-market news ingestion with one-hour staleness
-- Kite OAuth adapter for read-only portfolio sync, followed later by approval-based execution
-- Versioned prompts/policies and offline evaluation before strategy changes
+Open [http://localhost:3000](http://localhost:3000). The dedicated trading lab is available at [http://localhost:3000/agent](http://localhost:3000/agent).
 
 ## Kite authentication
 
-Select **Connect Kite** in the sidebar and then **Authenticate with Kite**. Nivesh requests a login URL from the official Kite MCP server and opens it in a separate tab. After authenticating, return to Nivesh; it checks the connection again automatically, or use **Check connection**.
+Select **Connect Kite** and then **Authenticate with Kite**. Authentication happens on the official Kite/MCP page; Nivesh never asks for a Zerodha password or 2FA value.
 
-Kite credentials are handled by the official authentication page and MCP transport. Nivesh never asks for a Zerodha password or 2FA value. The current server policy permits login and read operations only.
+After authorization, `/api/kite/portfolio` normalizes holdings, margins and positions without caching the response. Imported holdings are protected by default.
 
 ## Pi research runtime
 
-Use **Run live research** in the Agent Room to start a portfolio-aware workflow. Independent pi sessions run the news/opportunity screen, bull and bear reviews, and a final research-only portfolio verdict. Reports are schema-validated, source-linked, rate-limited, and saved locally under `.nivesh-data/` (ignored by Git). No order proposal or execution tool is available to these sessions. Once authorized, the dashboard calls `/api/kite/portfolio` to normalize holdings, margins and positions without caching the response.
+A research cycle runs independent Pi sessions for:
 
-## Environment
+```text
+Pulse + Scout → Asha + Virodh → Niti → Kavach → paper risk engine
+```
 
-Copy `.env.example` to `.env.local`. Keep `BROKER_MODE=mock` for order execution during development. Never commit Kite secrets or access tokens.
+Reports are schema-validated, source-linked, rate-limited and persisted locally. Choosing no candidate or rejecting a trade is a valid outcome; the workflow never forces activity.
 
-## Repository
+## Runtime data and environment
 
-The project is already initialized as a local Git repository. A private GitHub remote can be created later without changing the project structure.
+Copy `.env.example` to `.env.local`. Never commit the resulting file.
+
+```env
+BROKER_MODE=mock
+NIVESH_LIVE_TRADING_ENABLED=false
+```
+
+The following remain local and excluded from Git:
+
+```text
+.env.local
+.nivesh-data/settings.json
+.nivesh-data/latest-research.json
+.nivesh-data/bot-sleeve.json
+```
+
+## Live execution status
+
+Approval-based live execution is **not complete or enabled**. The intended boundary is:
+
+```text
+Expiring human approval
+  → IOC limit entry
+  → confirmed fill quantity
+  → immediate two-leg SELL GTT
+  → emergency flatten if protection fails
+  → broker reconciliation and audit
+```
+
+No live order should be enabled until preview signing, idempotency, partial-fill handling, GTT reconciliation and recovery tests are complete.
+
+## Verification
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+npm audit --audit-level=moderate
+```
+
+## Disclaimer
+
+Nivesh is experimental software, not investment advice. Options can lose their full premium rapidly. Simulated results do not guarantee live performance, and a triggered GTT limit order is not guaranteed to fill.

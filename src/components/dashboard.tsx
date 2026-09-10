@@ -39,6 +39,7 @@ import {
   news,
   opportunities,
 } from "@/lib/mock-data";
+import { demoPortfolio, demoResearch, demoSleeve } from "@/lib/demo-data";
 import type { BotSleeve, Holding, LivePortfolio, ResearchWorkflow } from "@/lib/types";
 
 const navItems = [
@@ -254,7 +255,7 @@ function Overview({ capital, setCapitalOpen, portfolio, loading, botSleeve }: { 
   const holdingCount = portfolio?.holdings.length ?? mockHoldings.length;
   return (
     <>
-      <section className="welcome-row"><div><span className="eyebrow">Tuesday, 29 September · Market open</span><h1>Good morning, Jitesh.</h1><p>{portfolio ? `Live Kite portfolio synced ${new Date(portfolio.asOf).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.` : "Your portfolio is steady. Three agents are evaluating one actionable opportunity."}</p></div><button className="capital-button" onClick={() => setCapitalOpen(true)}><WalletCards size={18} /><span>Bot capital<strong>{formatCurrency(capital)}</strong></span><Settings2 size={15} /></button></section>
+      <section className="welcome-row"><div><span className="eyebrow">Tuesday, 29 September · Market open</span><h1>Good morning, Investor.</h1><p>{portfolio ? `Live Kite portfolio synced ${new Date(portfolio.asOf).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.` : "Your portfolio is steady. Three agents are evaluating one actionable opportunity."}</p></div><button className="capital-button" onClick={() => setCapitalOpen(true)}><WalletCards size={18} /><span>Bot capital<strong>{formatCurrency(capital)}</strong></span><Settings2 size={15} /></button></section>
       <section className="metrics-grid">
         <article className="metric primary-metric"><div className="metric-label"><span>{portfolio ? "Kite equity holdings" : "Managed portfolio"}</span><CircleGauge size={17} /></div><strong>{loading ? "Syncing…" : formatCurrency(totalValue)}</strong><div><span className={portfolio ? "positive" : "positive"}><TrendingUp size={14} /> {portfolio ? "Live" : "+2.84%"}</span><small>{portfolio ? `${holdingCount} holdings · Kite` : "₹29,140 this month"}</small></div></article>
         <article className="metric"><div className="metric-label"><span>Available cash</span><WalletCards size={17} /></div><strong>{loading ? "Syncing…" : formatCurrency(availableCash)}</strong><div><span>{portfolio ? "Kite margin balance" : "32% of allocation"}</span><small>Capital limits still apply</small></div></article>
@@ -315,6 +316,10 @@ export default function Dashboard() {
   const title = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Overview", [view]);
 
   const loadPortfolio = useCallback(async () => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      setPortfolio(demoPortfolio);
+      return;
+    }
     setPortfolioLoading(true);
     setPortfolioError("");
     try {
@@ -333,6 +338,10 @@ export default function Dashboard() {
   }, []);
 
   const loadBotSleeve = useCallback(async () => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      setBotSleeve(demoSleeve);
+      return;
+    }
     try {
       const response = await fetch("/api/bot/portfolio", { cache: "no-store" });
       if (response.ok) setBotSleeve(await response.json() as BotSleeve);
@@ -342,6 +351,10 @@ export default function Dashboard() {
   }, []);
 
   const checkKite = useCallback(async () => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      setKiteState("connected");
+      return;
+    }
     setKiteState("checking");
     setKiteError("");
     try {
@@ -358,6 +371,14 @@ export default function Dashboard() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const initialize = async () => {
+        if (new URLSearchParams(window.location.search).get("demo") === "1") {
+          setCapital(demoSleeve.capital);
+          setPortfolio(demoPortfolio);
+          setBotSleeve(demoSleeve);
+          setResearch(demoResearch);
+          setKiteState("connected");
+          return;
+        }
         const savedCapital = Number(window.localStorage.getItem("nivesh.botCapital"));
         if (Number.isFinite(savedCapital) && savedCapital >= 10000) {
           setCapital(savedCapital);
@@ -381,6 +402,7 @@ export default function Dashboard() {
   }, [checkKite, loadBotSleeve]);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") return;
     let active = true;
     void fetch("/api/agents/research", { cache: "no-store" })
       .then((response) => response.json())
@@ -477,7 +499,7 @@ export default function Dashboard() {
       <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
         <div className="brand"><span className="brand-mark"><TrendingUp size={19} /></span><div><strong>Nivesh</strong><small>Investment intelligence</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div>
         <nav>{navItems.map((item) => { const Icon = item.icon; return <button key={item.id} className={view === item.id ? "nav-active" : ""} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span>{item.id === "agents" && <em>3</em>}</button>; })}</nav>
-        <div className="sidebar-bottom"><button className="kite-status" onClick={() => setKiteOpen(true)}><span className="kite-logo">K</span><div><strong>{kiteState === "connected" ? "Kite connected" : kiteState === "checking" ? "Checking Kite…" : "Connect Kite"}</strong><small>{kiteState === "connected" ? "Authorized · Read-only" : "Authentication required"}</small></div>{kiteState === "checking" ? <LoaderCircle className="spin kite-spinner" size={14} /> : <span className={`connection-dot ${kiteState !== "connected" ? "connection-offline" : ""}`} />}</button><button className={`pause-button ${paused ? "paused" : ""}`} onClick={() => setPaused(!paused)}><Pause size={16} />{paused ? "Resume research" : "Pause all activity"}</button><div className="profile"><span>JK</span><div><strong>Jitesh</strong><small>Personal account</small></div><ChevronDown size={15} /></div></div>
+        <div className="sidebar-bottom"><button className="kite-status" onClick={() => setKiteOpen(true)}><span className="kite-logo">K</span><div><strong>{kiteState === "connected" ? "Kite connected" : kiteState === "checking" ? "Checking Kite…" : "Connect Kite"}</strong><small>{kiteState === "connected" ? "Authorized · Read-only" : "Authentication required"}</small></div>{kiteState === "checking" ? <LoaderCircle className="spin kite-spinner" size={14} /> : <span className={`connection-dot ${kiteState !== "connected" ? "connection-offline" : ""}`} />}</button><button className={`pause-button ${paused ? "paused" : ""}`} onClick={() => setPaused(!paused)}><Pause size={16} />{paused ? "Resume research" : "Pause all activity"}</button><div className="profile"><span>NI</span><div><strong>Investor</strong><small>Personal account</small></div><ChevronDown size={15} /></div></div>
       </aside>
       {sidebarOpen && <button className="sidebar-overlay" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
       <main className="workspace">

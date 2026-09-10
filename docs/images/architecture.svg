@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840" role="img" aria-labelledby="title desc">
+  <title id="title">Nivesh system architecture</title>
+  <desc id="desc">Architecture showing the dashboard, agent lab, server APIs, Pi research agents, deterministic risk engine, Kite MCP and local private runtime storage.</desc>
+  <style>
+    text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .title { fill: #f0f7f6; font-size: 30px; font-weight: 500; }
+    .subtitle { fill: #82928f; font-size: 15px; font-weight: 400; }
+    .section { fill: #82928f; font-size: 12px; font-weight: 500; letter-spacing: 1.8px; }
+    .heading { fill: #e8f2f0; font-size: 16px; font-weight: 500; }
+    .body { fill: #9badab; font-size: 13px; font-weight: 400; }
+    .small { fill: #72827f; font-size: 11px; font-weight: 400; }
+    .box { fill: #11191b; stroke: #283638; stroke-width: 1; }
+    .teal { fill: #102724; stroke: #287d73; }
+    .blue { fill: #111f29; stroke: #315d78; }
+    .purple { fill: #1d1929; stroke: #574d7e; }
+    .amber { fill: #251f12; stroke: #6c572b; }
+    .red { fill: #271719; stroke: #6f333a; }
+    .greenText { fill: #58d7bd; }
+    .amberText { fill: #e3b85f; }
+    .redText { fill: #ed8792; }
+    .line { fill: none; stroke: #405153; stroke-width: 1.4; }
+    .safeLine { fill: none; stroke: #2f8d7e; stroke-width: 1.5; }
+    .dash { stroke-dasharray: 7 7; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#405153" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="safeArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#2f8d7e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="1440" height="840" fill="#0a0f11"/>
+  <text class="title" x="64" y="66">Nivesh architecture</text>
+  <text class="subtitle" x="64" y="94">Research is isolated from execution. Deterministic policy controls every simulated or future live action.</text>
+
+  <text class="section" x="64" y="148">EXPERIENCE</text>
+  <rect class="box teal" x="64" y="170" width="280" height="112" rx="12"/>
+  <text class="heading" x="88" y="205">Portfolio dashboard</text>
+  <text class="body" x="88" y="232">Holdings · cash · opportunities · news</text>
+  <text class="small" x="88" y="257">Protected personal portfolio</text>
+  <rect class="box teal" x="372" y="170" width="280" height="112" rx="12"/>
+  <text class="heading" x="396" y="205">Agent trading lab</text>
+  <text class="body" x="396" y="232">₹10K sleeve · capital curve · audit trail</text>
+  <text class="small" x="396" y="257">NIFTY long-option simulation</text>
+
+  <text class="section" x="64" y="342">APPLICATION BOUNDARY</text>
+  <rect class="box blue" x="64" y="364" width="588" height="184" rx="12"/>
+  <text class="heading" x="88" y="400">Next.js server APIs</text>
+  <rect class="box" x="88" y="424" width="162" height="88" rx="8"/>
+  <text class="body" x="106" y="453">Kite adapter</text>
+  <text class="small" x="106" y="477">Read-only portfolio sync</text>
+  <text class="small" x="106" y="495">No-store responses</text>
+  <rect class="box" x="270" y="424" width="162" height="88" rx="8"/>
+  <text class="body" x="288" y="453">Research API</text>
+  <text class="small" x="288" y="477">Schemas · rate limits</text>
+  <text class="small" x="288" y="495">Source-linked reports</text>
+  <rect class="box" x="452" y="424" width="176" height="88" rx="8"/>
+  <text class="body" x="470" y="453">Sleeve ledger</text>
+  <text class="small" x="470" y="477">Positions · trades · P&amp;L</text>
+  <text class="small" x="470" y="495">Bot-only attribution</text>
+
+  <text class="section" x="736" y="148">INTELLIGENCE</text>
+  <rect class="box purple" x="736" y="170" width="640" height="240" rx="12"/>
+  <text class="heading" x="760" y="205">Pi SDK research runtime</text>
+  <text class="small" x="760" y="229">Independent sessions · structured outputs · current evidence</text>
+  <rect class="box" x="760" y="252" width="108" height="86" rx="8"/>
+  <text class="body" x="781" y="282">Pulse</text><text class="small" x="781" y="307">Catalysts</text>
+  <rect class="box" x="884" y="252" width="108" height="86" rx="8"/>
+  <text class="body" x="905" y="282">Scout</text><text class="small" x="905" y="307">Setups</text>
+  <rect class="box" x="1008" y="252" width="108" height="86" rx="8"/>
+  <text class="body" x="1029" y="282">Asha</text><text class="small" x="1029" y="307">Bull case</text>
+  <rect class="box" x="1132" y="252" width="108" height="86" rx="8"/>
+  <text class="body" x="1153" y="282">Virodh</text><text class="small" x="1153" y="307">Bear case</text>
+  <rect class="box" x="1256" y="252" width="96" height="86" rx="8"/>
+  <text class="body" x="1277" y="282">Niti</text><text class="small" x="1277" y="307">Verdict</text>
+  <rect class="red" x="760" y="355" width="592" height="32" rx="7"/>
+  <text class="small redText" x="1056" y="375" text-anchor="middle">Order placement, modification and cancellation tools are unavailable to agents</text>
+
+  <text class="section" x="736" y="470">CONTROL AND DATA</text>
+  <rect class="box amber" x="736" y="492" width="300" height="152" rx="12"/>
+  <text class="heading" x="760" y="527">Kavach risk engine</text>
+  <text class="body" x="760" y="555">Capital and reserve limits</text>
+  <text class="body" x="760" y="579">Contract and full-lot validation</text>
+  <text class="body" x="760" y="603">Stop · target · freshness checks</text>
+  <text class="small amberText" x="760" y="626">Deterministic veto authority</text>
+  <rect class="box" x="1056" y="492" width="320" height="152" rx="12"/>
+  <text class="heading" x="1080" y="527">Private runtime store</text>
+  <text class="body" x="1080" y="555">Settings · reports · decisions</text>
+  <text class="body" x="1080" y="579">Paper trades · performance history</text>
+  <text class="small" x="1080" y="606">.nivesh-data/</text>
+  <text class="small greenText" x="1080" y="628">Local and Git-ignored</text>
+
+  <text class="section" x="64" y="618">EXTERNAL SERVICES</text>
+  <rect class="box" x="64" y="640" width="280" height="112" rx="12"/>
+  <text class="heading" x="88" y="675">Zerodha Kite MCP</text>
+  <text class="body" x="88" y="702">Holdings · margins · quotes · history</text>
+  <text class="small greenText" x="88" y="728">Current integration: read-only</text>
+  <rect class="box" x="372" y="640" width="280" height="112" rx="12"/>
+  <text class="heading" x="396" y="675">Current public sources</text>
+  <text class="body" x="396" y="702">NSE · BSE · RBI · company filings</text>
+  <text class="small" x="396" y="728">Timestamped and source-linked</text>
+
+  <path class="safeLine" d="M344 226H372" marker-end="url(#safeArrow)"/>
+  <path class="line" d="M204 282V364" marker-end="url(#arrow)"/>
+  <path class="line" d="M512 282V364" marker-end="url(#arrow)"/>
+  <path class="line" d="M652 456H704V290H736" marker-end="url(#arrow)"/>
+  <path class="safeLine" d="M1056 410V492" marker-end="url(#safeArrow)"/>
+  <path class="safeLine" d="M1036 568H1056" marker-end="url(#safeArrow)"/>
+  <path class="line" d="M169 548V640" marker-end="url(#arrow)"/>
+  <path class="line" d="M351 424V390H512V282" marker-end="url(#arrow)"/>
+  <path class="line" d="M512 640V548" marker-end="url(#arrow)"/>
+
+  <rect class="box red" x="736" y="680" width="640" height="72" rx="12"/>
+  <text class="heading" x="760" y="710">Future approval execution boundary</text>
+  <text class="small" x="760" y="733">Expiring human approval → IOC entry → confirmed fill → OCO GTT → reconciliation</text>
+  <text class="small redText" x="1348" y="710" text-anchor="end">Disabled by default</text>
+  <path class="line dash" d="M886 644V680" marker-end="url(#arrow)"/>
+</svg>
