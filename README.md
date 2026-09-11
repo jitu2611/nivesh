@@ -10,9 +10,13 @@
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" />
   <img alt="Zerodha Kite" src="https://img.shields.io/badge/Kite-MCP-E84A4A" />
   <img alt="Execution mode" src="https://img.shields.io/badge/execution-simulation-D39E30" />
-  <img alt="Repository visibility" src="https://img.shields.io/badge/repository-private-5B6573" />
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2E8B57" /></a>
+  <img alt="Repository visibility" src="https://img.shields.io/badge/repository-public-2E8B57" />
 </p>
 
+> [!WARNING]
+> Nivesh is experimental, local-first software. It has no multi-user authentication boundary and must not be exposed to the public internet or connected to a funded brokerage account in a public deployment. Keep live trading disabled.
+>
 > The screenshots below use fictional documentation fixtures. They contain no brokerage account data, real holdings, credentials or live trading signals.
 
 ## Dashboard
@@ -76,6 +80,13 @@ It rejects equities, futures, BANKNIFTY, FINNIFTY, MIDCPNIFTY, short positions, 
 
 ## Run locally
 
+### Prerequisites
+
+- Node.js 22 or newer
+- npm
+- A locally configured [Pi coding agent](https://github.com/badlogic/pi-mono) and model provider for research workflows
+- Optional: a Zerodha account for read-only Kite portfolio synchronization
+
 ```bash
 git clone https://github.com/jitu2611/nivesh.git
 cd nivesh
@@ -85,6 +96,8 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The dedicated trading lab is available at [http://localhost:3000/agent](http://localhost:3000/agent).
+
+Use only a trusted local machine. The API routes assume a single-user localhost environment; request-origin checks are defense in depth, not user authentication. The `private` field in `package.json` intentionally prevents accidental npm publication and is unrelated to this repository's visibility.
 
 ## Kite authentication
 
@@ -138,11 +151,16 @@ No live order should be enabled until preview signing, idempotency, partial-fill
 ## Verification
 
 ```bash
-npm run lint
-npx tsc --noEmit
+npm run check
 npm run build
 npm audit --audit-level=moderate
 ```
+
+## Contributing and security
+
+Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Please report vulnerabilities privately according to [SECURITY.md](SECURITY.md), not in a public issue.
+
+Nivesh is available under the [MIT License](LICENSE).
 
 ## Disclaimer
 
