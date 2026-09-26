@@ -1,7 +1,8 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { runResearchWorkflow } from "@/lib/pi-research";
+import { getLatestResearch, saveLatestResearch } from "@/lib/research-store";
+import { authorizeMutation } from "@/lib/request-security";
+import { getRuntimeSettings } from "@/lib/runtime-store";
 import type { ResearchWorkflow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,36 +14,28 @@ const globalResearch = globalThis as typeof globalThis & {
   niveshLatestResearch?: ResearchWorkflow;
 };
 
-const dataDirectory = join(process.cwd(), ".nivesh-data");
-const latestResearchFile = join(dataDirectory, "latest-research.json");
-
-async function persistLatest(result: ResearchWorkflow) {
-  await mkdir(dataDirectory, { recursive: true, mode: 0o700 });
-  const temporary = `${latestResearchFile}.tmp`;
-  await writeFile(temporary, JSON.stringify(result), { encoding: "utf8", mode: 0o600 });
-  await rename(temporary, latestResearchFile);
-  globalResearch.niveshLatestResearch = result;
-}
-
 export async function GET() {
   try {
     if (globalResearch.niveshLatestResearch) {
       return NextResponse.json(globalResearch.niveshLatestResearch, { headers: { "cache-control": "no-store" } });
     }
-    const result = JSON.parse(await readFile(latestResearchFile, "utf8")) as ResearchWorkflow;
+    const result = await getLatestResearch();
+    if (!result) return NextResponse.json({ result: null }, { headers: { "cache-control": "no-store" } });
     globalResearch.niveshLatestResearch = result;
     return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
   } catch {
-    return NextResponse.json({ result: null }, { headers: { "cache-control": "no-store" } });
+    return NextResponse.json({ error: "Stored research could not be read." }, { status: 500, headers: { "cache-control": "no-store" } });
   }
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  const expectedOrigin = request.nextUrl.origin;
-  const action = request.headers.get("x-nivesh-action");
-  if (origin !== expectedOrigin || action !== "run-research") {
+  if (!authorizeMutation(request, "run-research")) {
     return NextResponse.json({ error: "Research request was not authorized by the Nivesh UI." }, { status: 403 });
+  }
+
+  const settings = await getRuntimeSettings();
+  if (settings.paused) {
+    return NextResponse.json({ error: "Simulation is paused." }, { status: 409, headers: { "cache-control": "no-store" } });
   }
 
   if (globalResearch.niveshResearchRun) {
@@ -60,7 +53,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await run;
-    await persistLatest(result);
+    await saveLatestResearch(result);
+    globalResearch.niveshLatestResearch = result;
     return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("Pi research workflow failed:", error instanceof Error ? error.message : "Unknown error");

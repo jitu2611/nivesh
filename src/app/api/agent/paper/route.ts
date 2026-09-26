@@ -1,20 +1,21 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { executeLatestPaperIntent } from "@/lib/paper-trading";
-import type { ResearchWorkflow } from "@/lib/types";
+import { getLatestResearch } from "@/lib/research-store";
+import { authorizeMutation } from "@/lib/request-security";
+import { getRuntimeSettings } from "@/lib/runtime-store";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  if (origin !== request.nextUrl.origin || request.headers.get("x-nivesh-action") !== "execute-paper-intent") {
+  if (!authorizeMutation(request, "execute-paper-intent")) {
     return NextResponse.json({ error: "Paper execution request was not authorized by the Nivesh UI." }, { status: 403 });
   }
 
   try {
-    const latestFile = join(process.cwd(), ".nivesh-data", "latest-research.json");
-    const workflow = JSON.parse(await readFile(latestFile, "utf8")) as ResearchWorkflow;
+    const settings = await getRuntimeSettings();
+    if (settings.paused) return NextResponse.json({ error: "Simulation is paused." }, { status: 409, headers: { "cache-control": "no-store" } });
+    const workflow = await getLatestResearch();
+    if (!workflow) return NextResponse.json({ error: "No research workflow is available." }, { status: 404, headers: { "cache-control": "no-store" } });
     const result = await executeLatestPaperIntent(workflow);
     return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
   } catch (error) {

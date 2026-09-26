@@ -14,4 +14,4 @@ Include the affected component, reproduction steps, potential impact, and any su
 
 Nivesh is designed for a trusted, single-user local environment. Its API routes do not implement multi-user authentication. Do not expose the application to the public internet, run it on a shared host, or connect a public deployment to a brokerage account.
 
-Live trading is incomplete and unsupported. Keep `NIVESH_LIVE_TRADING_ENABLED=false`. Never commit `.env.local` or `.nivesh-data/`; both are excluded by `.gitignore`.
+Live trading is unsupported and no execution switch is present. Start the application only through the provided scripts, which bind to `127.0.0.1`. Never commit `.env.local` or `.nivesh-data/`; both are excluded by `.gitignore`.

@@ -4,7 +4,6 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { join } from "node:path";
 
 const KITE_MCP_ENDPOINT = "https://mcp.kite.trade/mcp";
-const EXECUTION_TOOLS = new Set(["place_order", "place_gtt_order", "cancel_order", "delete_gtt_order"]);
 
 const READ_ONLY_TOOLS = new Set([
   "login",
@@ -78,13 +77,6 @@ class KiteMcpClient {
 
   async callReadOnly(tool: string, args: Record<string, unknown> = {}): Promise<McpResult> {
     if (!READ_ONLY_TOOLS.has(tool)) throw new Error(`Kite tool '${tool}' is not permitted by the read-only policy.`);
-    await this.connect();
-    return this.request("tools/call", { name: tool, arguments: args }) as Promise<McpResult>;
-  }
-
-  async callExecution(tool: string, args: Record<string, unknown>): Promise<McpResult> {
-    if (process.env.NIVESH_LIVE_TRADING_ENABLED !== "true") throw new Error("Live trading is disabled by the server kill switch.");
-    if (!EXECUTION_TOOLS.has(tool)) throw new Error(`Kite execution tool '${tool}' is not permitted.`);
     await this.connect();
     return this.request("tools/call", { name: tool, arguments: args }) as Promise<McpResult>;
   }

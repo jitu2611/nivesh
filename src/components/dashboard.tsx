@@ -34,12 +34,12 @@ import {
   agents,
   decisions,
   gainers,
-  holdings as mockHoldings,
   losers,
   news,
   opportunities,
 } from "@/lib/mock-data";
 import { demoPortfolio, demoResearch, demoSleeve } from "@/lib/demo-data";
+import { marketClock } from "@/lib/paper-policy";
 import type { BotSleeve, Holding, LivePortfolio, ResearchWorkflow } from "@/lib/types";
 
 const navItems = [
@@ -227,7 +227,7 @@ function MarketRail() {
   return (
     <aside className="market-rail">
       <section className="panel market-card">
-        <div className="rail-heading"><div><span className="eyebrow">NSE · Nifty 100</span><h3>Market movers</h3></div><span className="market-live">Live</span></div>
+        <div className="rail-heading"><div><span className="eyebrow">Illustrative fixture</span><h3>Market movers</h3></div><span className="market-live">Sample</span></div>
         <div className="segment-control"><button className={tab === "gainers" ? "active" : ""} onClick={() => setTab("gainers")}>Gainers</button><button className={tab === "losers" ? "active" : ""} onClick={() => setTab("losers")}>Losers</button></div>
         <div className="movers">
           {list.map((item, index) => <div className="mover" key={item.symbol}><span className="rank">{index + 1}</span><strong>{item.symbol}</strong><span>{item.price}</span><em className={item.move > 0 ? "positive" : "negative"}>{item.move > 0 ? "+" : ""}{item.move}%</em></div>)}
@@ -235,64 +235,62 @@ function MarketRail() {
         <button className="text-button">View complete market <ChevronDown size={14} /></button>
       </section>
       <section className="panel pulse-card">
-        <div className="rail-heading"><div><span className="eyebrow">Market pulse</span><h3>India today</h3></div><Activity size={17} /></div>
+        <div className="rail-heading"><div><span className="eyebrow">Illustrative fixture</span><h3>Market pulse sample</h3></div><Activity size={17} /></div>
         <div className="index-row"><div><span>Nifty 50</span><strong>25,118.40</strong></div><em className="positive">+0.62%</em></div>
         <div className="index-row"><div><span>Sensex</span><strong>82,094.12</strong></div><em className="positive">+0.55%</em></div>
         <div className="index-row"><div><span>India VIX</span><strong>12.84</strong></div><em className="negative">+1.12%</em></div>
         <div className="breadth"><span>Market breadth</span><strong>Advances 64%</strong><div><i style={{ width: "64%" }} /></div></div>
       </section>
-      <section className="panel guard-card"><ShieldCheck size={20} /><div><strong>Risk guard is active</strong><span>All 8 portfolio rules passing</span></div><ChevronDown size={16} /></section>
+      <section className="panel guard-card"><ShieldCheck size={20} /><div><strong>Risk guard configured</strong><span>Validated again before every paper entry</span></div><ChevronDown size={16} /></section>
     </aside>
   );
 }
 
-function Overview({ capital, setCapitalOpen, portfolio, loading, botSleeve }: { capital: number; setCapitalOpen: (open: boolean) => void; portfolio: LivePortfolio | null; loading: boolean; botSleeve: BotSleeve | null }) {
-  const totalValue = portfolio?.totalValue ?? 1052840;
-  const availableCash = portfolio?.availableCash ?? capital * 0.32;
-  const totalPnl = portfolio?.totalPnl ?? 42680;
+function Overview({ capital, setCapitalOpen, portfolio, loading, botSleeve, now }: { capital: number; setCapitalOpen: (open: boolean) => void; portfolio: LivePortfolio | null; loading: boolean; botSleeve: BotSleeve | null; now: Date | null }) {
+  const totalValue = portfolio?.totalValue ?? 0;
+  const availableCash = portfolio?.availableCash ?? 0;
+  const totalPnl = portfolio?.totalPnl ?? 0;
   const costBasis = totalValue - totalPnl;
   const pnlPercent = costBasis > 0 ? totalPnl / costBasis * 100 : 0;
-  const holdingCount = portfolio?.holdings.length ?? mockHoldings.length;
+  const holdingCount = portfolio?.holdings.length ?? 0;
   return (
     <>
-      <section className="welcome-row"><div><span className="eyebrow">Tuesday, 29 September · Market open</span><h1>Good morning, Investor.</h1><p>{portfolio ? `Live Kite portfolio synced ${new Date(portfolio.asOf).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.` : "Your portfolio is steady. Three agents are evaluating one actionable opportunity."}</p></div><button className="capital-button" onClick={() => setCapitalOpen(true)}><WalletCards size={18} /><span>Bot capital<strong>{formatCurrency(capital)}</strong></span><Settings2 size={15} /></button></section>
+      <section className="welcome-row"><div><span className="eyebrow">{now ? `${now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "2-digit", month: "long" })} · ${marketClock(now).open ? "Market open" : "Market closed"}` : "Checking market status…"}</span><h1>Investment workspace</h1><p>{portfolio ? `Live Kite portfolio synced ${new Date(portfolio.asOf).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.` : "Connect Kite to load current holdings, cash, and portfolio context."}</p></div><button className="capital-button" onClick={() => setCapitalOpen(true)}><WalletCards size={18} /><span>Bot capital<strong>{formatCurrency(capital)}</strong></span><Settings2 size={15} /></button></section>
       <section className="metrics-grid">
-        <article className="metric primary-metric"><div className="metric-label"><span>{portfolio ? "Kite equity holdings" : "Managed portfolio"}</span><CircleGauge size={17} /></div><strong>{loading ? "Syncing…" : formatCurrency(totalValue)}</strong><div><span className={portfolio ? "positive" : "positive"}><TrendingUp size={14} /> {portfolio ? "Live" : "+2.84%"}</span><small>{portfolio ? `${holdingCount} holdings · Kite` : "₹29,140 this month"}</small></div></article>
-        <article className="metric"><div className="metric-label"><span>Available cash</span><WalletCards size={17} /></div><strong>{loading ? "Syncing…" : formatCurrency(availableCash)}</strong><div><span>{portfolio ? "Kite margin balance" : "32% of allocation"}</span><small>Capital limits still apply</small></div></article>
-        <article className="metric"><div className="metric-label"><span>Unrealised P&L</span><TrendingUp size={17} /></div><strong className={totalPnl >= 0 ? "positive" : "negative"}>{loading ? "Syncing…" : `${totalPnl >= 0 ? "+" : ""}${formatCurrency(totalPnl)}`}</strong><div><span className={pnlPercent >= 0 ? "positive" : "negative"}>{pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%</span><small>Across {holdingCount} holdings</small></div></article>
-        <article className="metric"><div className="metric-label"><span>Agent conviction</span><Sparkles size={17} /></div><strong>68<span>/100</span></strong><div><span>Moderately positive</span><small>6 agents reporting</small></div></article>
+        <article className="metric primary-metric"><div className="metric-label"><span>Kite equity holdings</span><CircleGauge size={17} /></div><strong>{loading ? "Syncing…" : portfolio ? formatCurrency(totalValue) : "—"}</strong><div><span className="positive"><TrendingUp size={14} /> {portfolio ? "Current" : "Not connected"}</span><small>{portfolio ? `${holdingCount} holdings · Kite` : "Connect Kite to synchronize"}</small></div></article>
+        <article className="metric"><div className="metric-label"><span>Available cash</span><WalletCards size={17} /></div><strong>{loading ? "Syncing…" : portfolio ? formatCurrency(availableCash) : "—"}</strong><div><span>{portfolio ? "Kite margin balance" : "Not connected"}</span><small>Capital limits still apply</small></div></article>
+        <article className="metric"><div className="metric-label"><span>Unrealised P&L</span><TrendingUp size={17} /></div><strong className={totalPnl >= 0 ? "positive" : "negative"}>{loading ? "Syncing…" : portfolio ? `${totalPnl >= 0 ? "+" : ""}${formatCurrency(totalPnl)}` : "—"}</strong><div><span className={pnlPercent >= 0 ? "positive" : "negative"}>{portfolio ? `${pnlPercent >= 0 ? "+" : ""}${pnlPercent.toFixed(2)}%` : "Not connected"}</span><small>{portfolio ? `Across ${holdingCount} holdings` : "Kite data unavailable"}</small></div></article>
+        <article className="metric"><div className="metric-label"><span>Agent conviction</span><Sparkles size={17} /></div><strong>—</strong><div><span>Run current research</span><small>No fabricated score</small></div></article>
       </section>
       <section className="main-grid">
         <div className="main-column">
           <section className="panel agent-lab-cta"><div><span className="brand-mark"><Bot size={18} /></span><div><span className="eyebrow">Dedicated simulation workspace</span><h2>Agent trading lab</h2><p>Track the isolated {formatCurrency(botSleeve?.capital ?? capital)} NIFTY options sleeve, simulated GTT exits, research and feedback.</p></div></div><a href="/agent">Open agent lab <ExternalLink size={13} /></a></section>
-          <section className="panel"><div className="panel-head"><div><span className="eyebrow">Ranked by conviction</span><h2>Investment opportunities</h2></div><button className="text-button">View all <ChevronDown size={14} /></button></div><div className="opportunity-list">{opportunities.map((_, index) => <OpportunityCard index={index} key={index} />)}</div></section>
+          <section className="panel"><div className="panel-head"><div><span className="eyebrow">Illustrative fixtures</span><h2>Opportunity UI examples</h2></div><button className="text-button">View all <ChevronDown size={14} /></button></div><div className="opportunity-list">{opportunities.map((_, index) => <OpportunityCard index={index} key={index} />)}</div></section>
         </div>
         <MarketRail />
       </section>
-      <section className="panel news-panel"><div className="panel-head"><div><span className="eyebrow">India market intelligence</span><h2>News that may matter</h2></div><button className="refresh-button"><RefreshCw size={14} /> Refreshed 12 min ago</button></div><div className="news-grid">{news.slice(0, 3).map((item) => <article className="news-item" key={item.id}><div><span className={`impact impact-${item.impact.toLowerCase()}`}>{item.impact} impact</span><span>{item.category}</span></div><h3>{item.headline}</h3><p>{item.summary}</p><footer><span>{item.source} · {item.age}</span><div>{item.symbols.slice(0, 2).map((symbol) => <code key={symbol}>{symbol}</code>)}</div></footer></article>)}</div></section>
+      <section className="panel news-panel"><div className="panel-head"><div><span className="eyebrow">Illustrative fixtures</span><h2>News UI examples</h2></div><span className="ticker-pill">Sample content</span></div><div className="news-grid">{news.slice(0, 3).map((item) => <article className="news-item" key={item.id}><div><span className={`impact impact-${item.impact.toLowerCase()}`}>{item.impact} impact</span><span>{item.category}</span></div><h3>{item.headline}</h3><p>{item.summary}</p><footer><span>{item.source} · {item.age}</span><div>{item.symbols.slice(0, 2).map((symbol) => <code key={symbol}>{symbol}</code>)}</div></footer></article>)}</div></section>
     </>
   );
 }
 
 function PortfolioView({ items, portfolio, loading, onRefresh }: { items: Holding[]; portfolio: LivePortfolio | null; loading: boolean; onRefresh: () => void }) {
   const total = portfolio?.totalValue ?? items.reduce((sum, item) => sum + item.quantity * item.ltp, 0);
-  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">{items.length} equity holdings · {portfolio ? "Live Kite data" : "Demo data"}</span><h1>Portfolio</h1><p>Existing holdings inform risk checks. Live holdings start protected and cannot be sold by agents.</p></div><div className="portfolio-title-actions"><div className="title-stat"><span>Current value</span><strong>{loading ? "Syncing…" : formatCurrency(total)}</strong></div><button className="button-secondary" onClick={onRefresh} disabled={loading}><RefreshCw className={loading ? "spin" : ""} size={14} /> Refresh</button></div></div><section className="panel table-panel"><div className="portfolio-table table-head"><span>Company</span><span>Quantity</span><span>Average</span><span>LTP</span><span>P&L</span><span>Agent access</span></div>{items.map((item) => { const pnl = item.pnl ?? item.quantity * (item.ltp - item.average); return <div className="portfolio-table" key={`${item.exchange}-${item.symbol}`}><div><span className="company-mark small-mark">{item.symbol.slice(0, 2)}</span><p><strong>{item.symbol}</strong><small>{item.exchange ?? item.company}</small></p></div><span>{item.quantity}</span><span>{formatCurrency(item.average)}</span><span>{formatCurrency(item.ltp)}</span><strong className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{formatCurrency(pnl)}</strong><span className={item.managed ? "managed" : "protected"}>{item.managed ? "Managed" : "Protected"}</span></div>})}</section></section>;
+  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">{items.length} equity holdings · {portfolio ? "Current Kite data" : "Kite not connected"}</span><h1>Portfolio</h1><p>Existing holdings inform risk checks. Live holdings start protected and cannot be sold by agents.</p></div><div className="portfolio-title-actions"><div className="title-stat"><span>Current value</span><strong>{loading ? "Syncing…" : portfolio ? formatCurrency(total) : "—"}</strong></div><button className="button-secondary" onClick={onRefresh} disabled={loading}><RefreshCw className={loading ? "spin" : ""} size={14} /> Refresh</button></div></div><section className="panel table-panel"><div className="portfolio-table table-head"><span>Company</span><span>Quantity</span><span>Average</span><span>LTP</span><span>P&L</span><span>Agent access</span></div>{items.map((item) => { const pnl = item.pnl ?? item.quantity * (item.ltp - item.average); return <div className="portfolio-table" key={`${item.exchange}-${item.symbol}`}><div><span className="company-mark small-mark">{item.symbol.slice(0, 2)}</span><p><strong>{item.symbol}</strong><small>{item.exchange ?? item.company}</small></p></div><span>{item.quantity}</span><span>{formatCurrency(item.average)}</span><span>{formatCurrency(item.ltp)}</span><strong className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{formatCurrency(pnl)}</strong><span className={item.managed ? "managed" : "protected"}>{item.managed ? "Managed" : "Protected"}</span></div>})}</section></section>;
 }
 
 function NewsView() {
-  const [refreshing, setRefreshing] = useState(false);
-  const refresh = () => { setRefreshing(true); window.setTimeout(() => setRefreshing(false), 900); };
-  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Sources are timestamped</span><h1>Market news</h1><p>India-focused developments, deduplicated and ranked by potential portfolio impact.</p></div><button className="button-primary" onClick={refresh}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> {refreshing ? "Refreshing…" : "Refresh now"}</button></div><div className="news-list">{news.map((item) => <article className="panel news-row" key={item.id}><div className="news-time"><Newspaper size={18} /><span>{item.age}</span></div><div><div className="news-meta"><span className={`impact impact-${item.impact.toLowerCase()}`}>{item.impact} impact</span><span>{item.category}</span><span>{item.source}</span></div><h2>{item.headline}</h2><p>{item.summary}</p><div className="symbol-list">{item.symbols.map((symbol) => <code key={symbol}>{symbol}</code>)}</div></div></article>)}</div></section>;
+  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Illustrative fixtures</span><h1>News UI examples</h1><p>Current, source-linked evidence appears in completed agent research reports.</p></div></div><div className="news-list">{news.map((item) => <article className="panel news-row" key={item.id}><div className="news-time"><Newspaper size={18} /><span>{item.age}</span></div><div><div className="news-meta"><span className={`impact impact-${item.impact.toLowerCase()}`}>{item.impact} impact</span><span>{item.category}</span><span>{item.source}</span></div><h2>{item.headline}</h2><p>{item.summary}</p><div className="symbol-list">{item.symbols.map((symbol) => <code key={symbol}>{symbol}</code>)}</div></div></article>)}</div></section>;
 }
 
 function SettingsView({ capital, onEdit }: { capital: number; onEdit: () => void }) {
-  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Hard limits override every agent</span><h1>Risk & capital</h1><p>Isolated NIFTY long-option simulation policy. Live execution remains disabled.</p></div></div><div className="settings-grid"><section className="panel settings-card"><WalletCards size={21} /><div><span>Bot capital</span><strong>{formatCurrency(capital)}</strong><p>Maximum allocation, constrained by actual Kite cash.</p></div><button className="button-secondary" onClick={onEdit}>Edit</button></section>{[["Cash reserve", "20%", "Protected from new orders"], ["Position capital", "35% max", "One complete NIFTY option lot"], ["Premium at risk", "10% max", "Long options only"], ["Open positions", "1 max", "No overlapping option exposure"], ["Exit order", "OCO GTT", "Stop and target defined first"], ["Order mode", "Simulation", "Live execution disabled"]].map(([label, value, help]) => <section className="panel rule-card" key={label}><div><span>{label}</span><strong>{value}</strong><p>{help}</p></div><span className="rule-pass"><Check size={13} /> Active</span></section>)}</div></section>;
+  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Hard limits override every agent</span><h1>Risk & capital</h1><p>Isolated NIFTY long-option simulation policy. Brokerage execution is not implemented.</p></div></div><div className="settings-grid"><section className="panel settings-card"><WalletCards size={21} /><div><span>Bot capital</span><strong>{formatCurrency(capital)}</strong><p>Maximum allocation, constrained by actual Kite cash.</p></div><button className="button-secondary" onClick={onEdit}>Edit</button></section>{[["Cash reserve", "20%", "Protected from new orders"], ["Position capital", "35% max", "One complete NIFTY option lot"], ["Premium at risk", "10% max", "Long options only"], ["Open positions", "1 max", "No overlapping option exposure"], ["Exit order", "OCO GTT", "Stop and target defined first"], ["Order mode", "Simulation", "No brokerage execution path"]].map(([label, value, help]) => <section className="panel rule-card" key={label}><div><span>{label}</span><strong>{value}</strong><p>{help}</p></div><span className="rule-pass"><Check size={13} /> Active</span></section>)}</div></section>;
 }
 
 function GenericView({ view, research, researchRunning, researchError, onRunResearch }: { view: View; research: ResearchWorkflow | null; researchRunning: boolean; researchError: string; onRunResearch: () => void }) {
-  if (view === "opportunities") return <section className="page-view"><div className="page-title"><div><span className="eyebrow">No pressure to trade</span><h1>Opportunities</h1><p>Candidates must pass research, portfolio fit and deterministic risk checks.</p></div></div><section className="panel"><div className="opportunity-list spacious">{opportunities.map((_, index) => <OpportunityCard index={index} key={index} />)}</div></section></section>;
+  if (view === "opportunities") return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Illustrative fixtures</span><h1>Opportunity UI examples</h1><p>Actual candidates appear only in completed, source-linked research workflows.</p></div></div><section className="panel"><div className="opportunity-list spacious">{opportunities.map((_, index) => <OpportunityCard index={index} key={index} />)}</div></section></section>;
   if (view === "agents") return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Structured debate, auditable evidence</span><h1>Agent room</h1><p>Real workflow activity appears here as agents research, challenge and decide.</p></div></div><AgentRoom workflow={research} running={researchRunning} error={researchError} onRun={onRunResearch} /><div className="agent-directory">{agents.map(agent => <article className="panel agent-profile" key={agent.id}><span className="agent-avatar large" style={{ borderColor: agent.accent, color: agent.accent }}>{agent.name.charAt(0)}</span><div><strong>{agent.name}</strong><span>{agent.role}</span><p>{agent.task}</p></div><StatusDot status={agent.status} /></article>)}</div></section>;
-  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Immutable activity journal</span><h1>Decisions</h1><p>Every recommendation, rejection and approval remains explainable.</p></div></div><section className="panel decisions-list">{decisions.map((decision, index) => <article key={index}><span className={`decision-icon decision-${decision.action.toLowerCase()}`}>{decision.action === "BUY" ? <TrendingUp size={17} /> : decision.action === "HOLD" ? <Pause size={17} /> : <X size={17} />}</span><div><span>{decision.time}</span><strong>{decision.symbol} · {decision.action}</strong><p>{decision.detail}</p></div><em>{decision.status}</em></article>)}</section></section>;
+  return <section className="page-view"><div className="page-title"><div><span className="eyebrow">Illustrative fixtures</span><h1>Decision UI examples</h1><p>Every recommendation, rejection and no-action outcome remains explainable.</p></div></div><section className="panel decisions-list">{decisions.map((decision, index) => <article key={index}><span className={`decision-icon decision-${decision.action.toLowerCase()}`}>{decision.action === "BUY" ? <TrendingUp size={17} /> : decision.action === "HOLD" ? <Pause size={17} /> : <X size={17} />}</span><div><span>{decision.time}</span><strong>{decision.symbol} · {decision.action}</strong><p>{decision.detail}</p></div><em>{decision.status}</em></article>)}</section></section>;
 }
 
 export default function Dashboard() {
@@ -313,7 +311,14 @@ export default function Dashboard() {
   const [research, setResearch] = useState<ResearchWorkflow | null>(null);
   const [researchRunning, setResearchRunning] = useState(false);
   const [researchError, setResearchError] = useState("");
+  const [now, setNow] = useState<Date | null>(null);
   const title = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Overview", [view]);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => setNow(new Date()), 0);
+    const clock = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => { window.clearTimeout(initial); window.clearInterval(clock); };
+  }, []);
 
   const loadPortfolio = useCallback(async () => {
     if (new URLSearchParams(window.location.search).get("demo") === "1") {
@@ -379,20 +384,11 @@ export default function Dashboard() {
           setKiteState("connected");
           return;
         }
-        const savedCapital = Number(window.localStorage.getItem("nivesh.botCapital"));
-        if (Number.isFinite(savedCapital) && savedCapital >= 10000) {
-          setCapital(savedCapital);
-          await fetch("/api/settings", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ capital: savedCapital }),
-          });
-        } else {
-          const response = await fetch("/api/settings", { cache: "no-store" });
-          if (response.ok) {
-            const settings = await response.json() as { capital: number };
-            setCapital(settings.capital);
-          }
+        const response = await fetch("/api/settings", { cache: "no-store" });
+        if (response.ok) {
+          const settings = await response.json() as { capital: number; paused: boolean };
+          setCapital(settings.capital);
+          setPaused(settings.paused);
         }
         await Promise.all([checkKite(), loadBotSleeve()]);
       };
@@ -433,13 +429,16 @@ export default function Dashboard() {
     if (!loginWindow) {
       setKiteConnecting(false);
       setKiteState("error");
-      setKiteError("Your browser blocked the Kite login tab. Allow pop-ups for localhost and try again.");
+      setKiteError("Your browser blocked the Kite login tab. Allow pop-ups for the local Nivesh page and try again.");
       return;
     }
     loginWindow.document.title = "Opening Kite…";
     loginWindow.document.body.textContent = "Preparing secure Kite authentication…";
     try {
-      const response = await fetch("/api/kite/login", { method: "POST" });
+      const response = await fetch("/api/kite/login", {
+        method: "POST",
+        headers: { "x-nivesh-action": "kite-login" },
+      });
       const data = await response.json() as { loginUrl?: string; error?: string };
       if (!response.ok || !data.loginUrl) throw new Error(data.error ?? "Kite login could not be started.");
       loginWindow.opener = null;
@@ -454,6 +453,10 @@ export default function Dashboard() {
   };
 
   const runResearch = async () => {
+    if (paused) {
+      setResearchError("Resume simulation before starting research.");
+      return;
+    }
     if (kiteState !== "connected") {
       setResearchError("Connect Kite before starting a portfolio-aware research run.");
       setKiteOpen(true);
@@ -484,14 +487,31 @@ export default function Dashboard() {
     setView(next);
     setSidebarOpen(false);
   };
+  const updatePause = async (nextPaused: boolean) => {
+    const previous = paused;
+    setPaused(nextPaused);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-nivesh-action": "update-settings" },
+        body: JSON.stringify({ paused: nextPaused }),
+      });
+      if (!response.ok) throw new Error("Pause setting was not saved.");
+    } catch {
+      setPaused(previous);
+    }
+  };
   const saveCapital = (value: number) => {
+    const previous = capital;
     setCapital(value);
-    window.localStorage.setItem("nivesh.botCapital", String(value));
     void fetch("/api/settings", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-nivesh-action": "update-settings" },
       body: JSON.stringify({ capital: value }),
-    }).then(() => loadBotSleeve());
+    }).then((response) => {
+      if (!response.ok) setCapital(previous);
+      return loadBotSleeve();
+    }).catch(() => setCapital(previous));
   };
 
   return (
@@ -499,16 +519,16 @@ export default function Dashboard() {
       <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
         <div className="brand"><span className="brand-mark"><TrendingUp size={19} /></span><div><strong>Nivesh</strong><small>Investment intelligence</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div>
         <nav>{navItems.map((item) => { const Icon = item.icon; return <button key={item.id} className={view === item.id ? "nav-active" : ""} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span>{item.id === "agents" && <em>3</em>}</button>; })}</nav>
-        <div className="sidebar-bottom"><button className="kite-status" onClick={() => setKiteOpen(true)}><span className="kite-logo">K</span><div><strong>{kiteState === "connected" ? "Kite connected" : kiteState === "checking" ? "Checking Kite…" : "Connect Kite"}</strong><small>{kiteState === "connected" ? "Authorized · Read-only" : "Authentication required"}</small></div>{kiteState === "checking" ? <LoaderCircle className="spin kite-spinner" size={14} /> : <span className={`connection-dot ${kiteState !== "connected" ? "connection-offline" : ""}`} />}</button><button className={`pause-button ${paused ? "paused" : ""}`} onClick={() => setPaused(!paused)}><Pause size={16} />{paused ? "Resume research" : "Pause all activity"}</button><div className="profile"><span>NI</span><div><strong>Investor</strong><small>Personal account</small></div><ChevronDown size={15} /></div></div>
+        <div className="sidebar-bottom"><button className="kite-status" onClick={() => setKiteOpen(true)}><span className="kite-logo">K</span><div><strong>{kiteState === "connected" ? "Kite connected" : kiteState === "checking" ? "Checking Kite…" : "Connect Kite"}</strong><small>{kiteState === "connected" ? "Authorized · Read-only" : "Authentication required"}</small></div>{kiteState === "checking" ? <LoaderCircle className="spin kite-spinner" size={14} /> : <span className={`connection-dot ${kiteState !== "connected" ? "connection-offline" : ""}`} />}</button><button className={`pause-button ${paused ? "paused" : ""}`} onClick={() => void updatePause(!paused)}><Pause size={16} />{paused ? "Resume research" : "Pause all activity"}</button><div className="profile"><span>NI</span><div><strong>Investor</strong><small>Personal account</small></div><ChevronDown size={15} /></div></div>
       </aside>
       {sidebarOpen && <button className="sidebar-overlay" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
       <main className="workspace">
-        <header className="topbar"><button className="menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div className="mobile-title">{title}</div><div className="market-status"><span /> NSE open <small>Closes in 3h 18m</small></div><div className="top-actions"><label className="search-box"><Search size={16} /><input placeholder="Search stocks, news…" /></label><button className="icon-button notification"><Bell size={18} /><span /></button><span className="mode-pill">Simulation mode</span></div></header>
-        {paused && <div className="paused-banner"><Pause size={15} /> All agent activity is paused. No research or proposals will run.<button onClick={() => setPaused(false)}>Resume</button></div>}
+        <header className="topbar"><button className="menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div className="mobile-title">{title}</div><div className="market-status"><span /> {now ? `NSE ${marketClock(now).open ? "open" : "closed"}` : "NSE status"}<small>{now ? now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }) : "Checking…"}</small></div><div className="top-actions"><label className="search-box"><Search size={16} /><input placeholder="Search stocks, news…" /></label><button className="icon-button notification"><Bell size={18} /><span /></button><span className="mode-pill">Simulation mode</span></div></header>
+        {paused && <div className="paused-banner"><Pause size={15} /> All agent activity is paused. No research or proposals will run.<button onClick={() => void updatePause(false)}>Resume</button></div>}
         <div className="content-area">
           {portfolioError && <div className="data-error"><span>{portfolioError}</span><button onClick={loadPortfolio}>Try again</button></div>}
-          {view === "overview" && <Overview capital={capital} setCapitalOpen={setCapitalOpen} portfolio={portfolio} loading={portfolioLoading} botSleeve={botSleeve} />}
-          {view === "portfolio" && <PortfolioView items={portfolio?.holdings ?? (kiteState === "connected" ? [] : mockHoldings)} portfolio={portfolio} loading={portfolioLoading} onRefresh={loadPortfolio} />}
+          {view === "overview" && <Overview capital={capital} setCapitalOpen={setCapitalOpen} portfolio={portfolio} loading={portfolioLoading} botSleeve={botSleeve} now={now} />}
+          {view === "portfolio" && <PortfolioView items={portfolio?.holdings ?? []} portfolio={portfolio} loading={portfolioLoading} onRefresh={loadPortfolio} />}
           {view === "news" && <NewsView />}
           {view === "settings" && <SettingsView capital={capital} onEdit={() => setCapitalOpen(true)} />}
           {(view === "opportunities" || view === "agents" || view === "decisions") && <GenericView view={view} research={research} researchRunning={researchRunning} researchError={researchError} onRunResearch={runResearch} />}

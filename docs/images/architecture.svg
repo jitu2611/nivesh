@@ -32,7 +32,7 @@
   </defs>
   <rect width="1440" height="840" fill="#0a0f11"/>
   <text class="title" x="64" y="66">Nivesh architecture</text>
-  <text class="subtitle" x="64" y="94">Research is isolated from execution. Deterministic policy controls every simulated or future live action.</text>
+  <text class="subtitle" x="64" y="94">Research is isolated from the paper ledger. Deterministic policy controls every simulated action.</text>
 
   <text class="section" x="64" y="148">EXPERIENCE</text>
   <rect class="box teal" x="64" y="170" width="280" height="112" rx="12"/>
@@ -112,8 +112,8 @@
   <path class="line" d="M512 640V548" marker-end="url(#arrow)"/>
 
   <rect class="box red" x="736" y="680" width="640" height="72" rx="12"/>
-  <text class="heading" x="760" y="710">Future approval execution boundary</text>
-  <text class="small" x="760" y="733">Expiring human approval → IOC entry → confirmed fill → OCO GTT → reconciliation</text>
-  <text class="small redText" x="1348" y="710" text-anchor="end">Disabled by default</text>
+  <text class="heading" x="760" y="710">Simulation-only boundary</text>
+  <text class="small" x="760" y="733">No order placement · no GTT placement · no approval mode · no autonomous mode</text>
+  <text class="small redText" x="1348" y="710" text-anchor="end">Enforced in code</text>
   <path class="line dash" d="M886 644V680" marker-end="url(#arrow)"/>
 </svg>

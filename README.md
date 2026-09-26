@@ -15,9 +15,9 @@
 </p>
 
 > [!WARNING]
-> Nivesh is experimental, local-first software. It has no multi-user authentication boundary and must not be exposed to the public internet or connected to a funded brokerage account in a public deployment. Keep live trading disabled.
+> Nivesh is experimental, local-first software. It has no multi-user authentication boundary and must not be exposed to the public internet. Brokerage integration is read-only; the application does not implement live trading.
 >
-> The screenshots below use fictional documentation fixtures. They contain no brokerage account data, real holdings, credentials or live trading signals.
+> The screenshots and explicitly labelled dashboard examples use fictional fixtures. They contain no brokerage account data, real holdings, credentials or live trading signals. Actual portfolio and research data appear only after Kite synchronization or a completed research run.
 
 ## Dashboard
 
@@ -33,7 +33,7 @@ The main workspace combines the protected personal portfolio with capital contro
 
 ## Architecture
 
-Research and execution are intentionally separated. Pi agents can collect evidence and submit schema-validated reports, but they cannot call brokerage execution tools. Kavach applies deterministic policy before anything reaches the paper ledger or a future approval boundary.
+Research and simulation are intentionally separated. Pi agents collect evidence and submit schema-validated reports, but they cannot call brokerage execution tools. Kavach applies deterministic policy before anything reaches the paper ledger. The application contains no live-order execution path.
 
 ![Nivesh architecture diagram](docs/images/architecture.svg)
 
@@ -53,6 +53,10 @@ Research and execution are intentionally separated. Pi agents can collect eviden
 - Simulated costs, slippage, stop-losses, targets and time exits
 - Simulated two-leg OCO GTT protection using `NRML`
 - Explicit executed, rejected and no-action audit records
+- Persistent pause control shared by both workspaces
+- Versioned, atomic runtime state with backup recovery and stale-write detection
+- Loopback-only network boundary and same-origin mutation checks
+- Automated policy, persistence and request-security tests
 - Existing Kite holdings protected from bot attribution and selling
 
 ## NIFTY options mandate
@@ -76,7 +80,7 @@ It rejects equities, futures, BANKNIFTY, FINNIFTY, MIDCPNIFTY, short positions, 
 4. The bot ledger attributes only its own positions and trades.
 5. Runtime reports, account settings and portfolio snapshots stay under `.nivesh-data/`, which is Git-ignored.
 6. Environment files and credentials are excluded from version control.
-7. Live execution remains behind a server-side kill switch and is disabled by default.
+7. Brokerage execution methods, modes and environment switches are intentionally absent.
 
 ## Run locally
 
@@ -95,9 +99,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The dedicated trading lab is available at [http://localhost:3000/agent](http://localhost:3000/agent).
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The dedicated trading lab is available at [http://127.0.0.1:3000/agent](http://127.0.0.1:3000/agent).
 
-Use only a trusted local machine. The API routes assume a single-user localhost environment; request-origin checks are defense in depth, not user authentication. The `private` field in `package.json` intentionally prevents accidental npm publication and is unrelated to this repository's visibility.
+Use only a trusted local machine. Development and production scripts bind to `127.0.0.1`; Proxy rejects non-loopback hosts, and every mutation requires a matching loopback origin and explicit action header. These controls are defense in depth for a single-user local application, not multi-user authentication. The `private` field in `package.json` intentionally prevents accidental npm publication and is unrelated to this repository's visibility.
 
 ## Kite authentication
 
@@ -120,38 +124,32 @@ Reports are schema-validated, source-linked, rate-limited and persisted locally.
 Copy `.env.example` to `.env.local`. Never commit the resulting file.
 
 ```env
-BROKER_MODE=mock
-NIVESH_LIVE_TRADING_ENABLED=false
+# Optional override; use an absolute private directory.
+NIVESH_DATA_DIR=/absolute/path/to/private/nivesh-data
 ```
 
 The following remain local and excluded from Git:
 
 ```text
 .env.local
-.nivesh-data/settings.json
+.nivesh-data/runtime.json
+.nivesh-data/runtime.json.bak
 .nivesh-data/latest-research.json
-.nivesh-data/bot-sleeve.json
+.nivesh-data/latest-research.json.bak
 ```
 
-## Live execution status
+Legacy `settings.json` and `bot-sleeve.json` files are migrated into the versioned `runtime.json` state on first use. Writes use a same-directory temporary file, filesystem synchronization and atomic rename. A valid backup is retained for recovery; invalid persisted data causes an explicit error instead of a silent reset.
 
-Approval-based live execution is **not complete or enabled**. The intended boundary is:
+## Simulation-only boundary
 
-```text
-Expiring human approval
-  → IOC limit entry
-  → confirmed fill quantity
-  → immediate two-leg SELL GTT
-  → emergency flatten if protection fails
-  → broker reconciliation and audit
-```
+Nivesh deliberately has no live order, GTT, approval or autonomous execution mode. Kite integration is read-only and is used for portfolio context, contract metadata and current prices. Paper entries and exits affect only the isolated local ledger.
 
-No live order should be enabled until preview signing, idempotency, partial-fill handling, GTT reconciliation and recovery tests are complete.
+The market clock currently models regular weekday NSE hours and does not maintain an exchange-holiday calendar. Missing fresh quotes never trigger simulated exits.
 
 ## Verification
 
 ```bash
-npm run check
+npm run check        # lint + TypeScript + tests
 npm run build
 npm audit --audit-level=moderate
 ```
@@ -164,4 +162,4 @@ Nivesh is available under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-Nivesh is experimental software, not investment advice. Options can lose their full premium rapidly. Simulated results do not guarantee live performance, and a triggered GTT limit order is not guaranteed to fill.
+Nivesh is experimental software, not investment advice. Options can lose their full premium rapidly. Simulated results do not guarantee live performance, and simulated fills or exits do not represent executable market outcomes.

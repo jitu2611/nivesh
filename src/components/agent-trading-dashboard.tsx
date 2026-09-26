@@ -75,14 +75,22 @@ export default function AgentTradingDashboard() {
       return;
     }
     try {
-      const [sleeveResponse, researchResponse] = await Promise.all([
-        fetch("/api/bot/portfolio", { cache: "no-store" }),
+      const [sleeveResponse, researchResponse, settingsResponse] = await Promise.all([
+        fetch("/api/bot/portfolio", {
+          method: "POST",
+          headers: { "x-nivesh-action": "reconcile-paper-sleeve" },
+        }),
         fetch("/api/agents/research", { cache: "no-store" }),
+        fetch("/api/settings", { cache: "no-store" }),
       ]);
       if (!sleeveResponse.ok) throw new Error("Could not load the agent capital ledger.");
       setSleeve(await sleeveResponse.json() as BotSleeve);
       const report = await researchResponse.json() as ResearchWorkflow | { result: null };
       if ("mode" in report) setResearch(report);
+      if (settingsResponse.ok) {
+        const settings = await settingsResponse.json() as { paused: boolean };
+        setPaused(settings.paused);
+      }
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load agent performance.");
@@ -97,7 +105,26 @@ export default function AgentTradingDashboard() {
     return () => { window.clearTimeout(timer); window.clearInterval(interval); };
   }, [refresh]);
 
+  const updatePause = async (nextPaused: boolean) => {
+    const previous = paused;
+    setPaused(nextPaused);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-nivesh-action": "update-settings" },
+        body: JSON.stringify({ paused: nextPaused }),
+      });
+      if (!response.ok) throw new Error("Pause setting was not saved.");
+    } catch {
+      setPaused(previous);
+    }
+  };
+
   const runResearch = async () => {
+    if (paused) {
+      setError("Resume simulation before starting research.");
+      return;
+    }
     setResearching(true);
     setError("");
     try {
@@ -139,7 +166,7 @@ export default function AgentTradingDashboard() {
   return <div className="agent-lab-shell">
     <header className="lab-topbar">
       <div className="lab-brand"><Link href="/" aria-label="Back to Nivesh"><ArrowLeft size={18} /></Link><span className="brand-mark"><TrendingUp size={18} /></span><div><strong>Nivesh agent lab</strong><small>NIFTY options sandbox</small></div></div>
-      <div className="lab-top-actions"><span className="mode-pill"><FlaskConical size={12} /> Simulation only</span><button className="icon-button" onClick={() => void refresh()} aria-label="Refresh"><RefreshCw size={17} /></button><button className={`pause-button lab-pause ${paused ? "paused" : ""}`} onClick={() => setPaused(!paused)}>{paused ? <Play size={14} /> : <Pause size={14} />}{paused ? "Resume agents" : "Pause agents"}</button></div>
+      <div className="lab-top-actions"><span className="mode-pill"><FlaskConical size={12} /> Simulation only</span><button className="icon-button" onClick={() => void refresh()} aria-label="Refresh"><RefreshCw size={17} /></button><button className={`pause-button lab-pause ${paused ? "paused" : ""}`} onClick={() => void updatePause(!paused)}>{paused ? <Play size={14} /> : <Pause size={14} />}{paused ? "Resume agents" : "Pause agents"}</button></div>
     </header>
 
     <main className="lab-content">
@@ -158,7 +185,7 @@ export default function AgentTradingDashboard() {
         <div className="lab-main-column">
           <section className="panel lab-equity-panel"><div className="panel-head"><div><span className="eyebrow">Marked-to-market · Agent sleeve only</span><h2>Capital curve</h2></div><div className="chart-legend"><span><i className="portfolio-line" />Agent value</span><span><i className="nifty-line" />Initial capital</span></div></div><EquityCurve sleeve={sleeve} /><div className="lab-chart-note"><Activity size={14} /><span>{chartInsight}</span></div></section>
 
-          <section className="panel"><div className="panel-head"><div><span className="eyebrow">Attributable to agent orders only</span><h2>Positions and trades</h2></div><span className="safe-label"><ShieldCheck size={13} /> Existing Kite holdings protected</span></div>{sleeve.positions.length === 0 ? <div className="lab-empty"><Clock3 size={22} /><strong>No simulated positions</strong><span>When an approved paper-trading proposal passes the risk engine, its position and live P&L will appear here.</span></div> : <div className="lab-position-list">{sleeve.positions.map((position) => <article key={position.symbol}><strong>{position.symbol}<small className="position-gtt">GTT: {position.exitPlan.lowerTrigger.toFixed(2)} / {position.exitPlan.upperTrigger.toFixed(2)}</small></strong><span>{position.quantity} units</span><span>{formatCurrency(position.value)}</span><em className={position.pnl >= 0 ? "positive" : "negative"}>{position.pnl >= 0 ? "+" : ""}{formatCurrency(position.pnl)}</em></article>)}</div>}</section>
+          <section className="panel"><div className="panel-head"><div><span className="eyebrow">Attributable to agent orders only</span><h2>Positions and trades</h2></div><span className="safe-label"><ShieldCheck size={13} /> Existing Kite holdings protected</span></div>{sleeve.positions.length === 0 ? <div className="lab-empty"><Clock3 size={22} /><strong>No simulated positions</strong><span>When a paper-trading proposal passes the risk engine, its position and marked P&L will appear here.</span></div> : <div className="lab-position-list">{sleeve.positions.map((position) => <article key={position.symbol}><strong>{position.symbol}<small className="position-gtt">GTT: {position.exitPlan.lowerTrigger.toFixed(2)} / {position.exitPlan.upperTrigger.toFixed(2)}</small></strong><span>{position.quantity} units</span><span>{formatCurrency(position.value)}</span><em className={position.pnl >= 0 ? "positive" : "negative"}>{position.pnl >= 0 ? "+" : ""}{formatCurrency(position.pnl)}</em></article>)}</div>}</section>
 
           <section className="panel"><div className="panel-head"><div><span className="eyebrow">Latest pi workflow</span><h2>Research verdict</h2></div>{research?.candidate && <span className="ticker-pill">{research.candidate}</span>}</div>{lastVerdict ? <div className="lab-verdict"><span className={`report-stance stance-${lastVerdict.stance}`}>{lastVerdict.confidence}</span><div><strong>{lastVerdict.recommendation}</strong><p>{lastVerdict.summary}</p>{research?.paperIntent && <div className="paper-intent"><span>{research.paperIntent.action}</span><span>{research.paperIntent.strategy}</span><span>{research.paperIntent.instrument ?? "No instrument"}</span><span>{research.paperIntent.confidence}%</span></div>}<footer>{lastVerdict.sources.slice(0, 4).map((source) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.title}<ExternalLink size={10} /></a>)}</footer></div></div> : <div className="lab-empty"><BrainCircuit size={22} /><strong>No research verdict yet</strong><span>Run market research to start a current, portfolio-aware pi workflow.</span></div>}</section>
 
@@ -166,7 +193,7 @@ export default function AgentTradingDashboard() {
         </div>
 
         <aside className="lab-side-column">
-          <section className="panel mandate-card"><div className="panel-head"><div><span className="eyebrow">Current mandate</span><h2>NIFTY options only</h2></div><FlaskConical size={17} /></div><div className="mandate-body"><div><CheckCircle2 size={14} /><span><strong>Long NIFTY CE or PE</strong><small>Exact NFO contract and full lot required</small></span></div><div><CheckCircle2 size={14} /><span><strong>Two-leg OCO GTT exit</strong><small>Stop-loss and target defined before entry</small></span></div><div><CheckCircle2 size={14} /><span><strong>One position maximum</strong><small>No writing, futures or other indices</small></span></div><div className="mandate-warning"><ShieldCheck size={15} /><p>This is a GTT simulation. Live NFO and GTT order tools remain blocked until a separate approval and reconciliation layer is tested.</p></div></div></section>
+          <section className="panel mandate-card"><div className="panel-head"><div><span className="eyebrow">Current mandate</span><h2>NIFTY options only</h2></div><FlaskConical size={17} /></div><div className="mandate-body"><div><CheckCircle2 size={14} /><span><strong>Long NIFTY CE or PE</strong><small>Exact NFO contract and full lot required</small></span></div><div><CheckCircle2 size={14} /><span><strong>Two-leg OCO GTT exit</strong><small>Stop-loss and target defined before entry</small></span></div><div><CheckCircle2 size={14} /><span><strong>One position maximum</strong><small>No writing, futures or other indices</small></span></div><div className="mandate-warning"><ShieldCheck size={15} /><p>This is a GTT simulation. Nivesh contains no live NFO order or GTT execution path.</p></div></div></section>
 
           <section className="panel leaderboard"><div className="panel-head"><div><span className="eyebrow">Outcome attribution</span><h2>Agent scoreboard</h2></div><span>{runningAgents} active</span></div>{agentRoster.map((agent) => <article key={agent.name}><span className="agent-avatar" style={{ borderColor: agent.color, color: agent.color }}>{agent.name.charAt(0)}</span><div><strong>{agent.name}</strong><small>{agent.role}</small></div><em>Unrated</em></article>)}<p>Scores activate only after enough decisions mature against their declared time horizons.</p></section>
 

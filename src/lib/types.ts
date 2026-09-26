@@ -89,9 +89,6 @@ export type PaperPosition = {
   closeBy: string;
   workflowId: string;
   entryCharges: number;
-  environment?: "paper" | "live";
-  entryOrderId?: string;
-  gttTriggerId?: number;
   exitPlan: {
     type: "two-leg-gtt";
     product: "NRML";
@@ -119,30 +116,6 @@ export type PaperTrade = {
   realisedPnl?: number;
 };
 
-export type LiveApproval = {
-  id: string;
-  workflowId: string;
-  createdAt: string;
-  expiresAt: string;
-  status: "pending" | "executing" | "protected" | "rejected" | "failed" | "flattened";
-  instrument: string;
-  symbol: string;
-  quantity: number;
-  lotSize: number;
-  referencePrice: number;
-  limitPrice: number;
-  estimatedValue: number;
-  stopLoss: number;
-  stopLimit: number;
-  targetPrice: number;
-  targetLimit: number;
-  maximumLossEstimate: number;
-  confirmationText: string;
-  entryOrderId?: string;
-  gttTriggerId?: number;
-  message?: string;
-};
-
 export type PaperDecision = {
   id: string;
   workflowId: string;
@@ -155,6 +128,7 @@ export type PaperDecision = {
 };
 
 export type BotSleeve = {
+  revision: number;
   capital: number;
   cash: number;
   invested: number;
@@ -167,7 +141,7 @@ export type BotSleeve = {
   trades: PaperTrade[];
   decisions: PaperDecision[];
   history: Array<{ timestamp: string; value: number; capital: number }>;
-  mode: "simulation" | "approval" | "autonomous";
+  mode: "simulation";
   asOf: string;
 };
 

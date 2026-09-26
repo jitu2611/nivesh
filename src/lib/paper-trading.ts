@@ -1,6 +1,15 @@
 import "server-only";
 
 import { kiteMcp, resultData, resultText } from "@/lib/kite-mcp";
+import {
+  ENTRY_CONFIDENCE_MINIMUM,
+  estimateCharges,
+  marketClock,
+  MAX_RESEARCH_AGE_MS,
+  planPaperEntry,
+  slippageRate,
+  validateInstrument,
+} from "@/lib/paper-policy";
 import { getBotSleeve, getRuntimeSettings, saveBotSleeve } from "@/lib/runtime-store";
 import type { BotSleeve, PaperDecision, PaperIntent, PaperPosition, PaperStrategy, PaperTrade, ResearchWorkflow } from "@/lib/types";
 
@@ -35,20 +44,6 @@ async function serial<T>(operation: () => Promise<T>): Promise<T> {
   } finally {
     release();
   }
-}
-
-export function marketClock(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Kolkata",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const minutes = Number(value.hour) * 60 + Number(value.minute);
-  const weekday = value.weekday;
-  return { open: !["Sat", "Sun"].includes(weekday) && minutes >= 9 * 60 + 15 && minutes <= 15 * 60 + 25, minutes };
 }
 
 function quoteFromData(value: unknown, instrument: string): number | undefined {
@@ -111,15 +106,6 @@ export async function lotSize(instrument: string, strategy: PaperStrategy) {
   return Math.floor(size);
 }
 
-function charges(strategy: PaperStrategy, side: "BUY" | "SELL", gross: number) {
-  const rate = strategy === "long-option" ? 0.00055 : strategy === "intraday" ? 0.00035 : side === "SELL" ? 0.00125 : 0.0002;
-  return Math.max(0.01, gross * rate);
-}
-
-function slippageRate(strategy: PaperStrategy) {
-  return strategy === "long-option" ? 0.0015 : strategy === "intraday" ? 0.0008 : 0.0005;
-}
-
 function appendDecision(sleeve: BotSleeve, workflow: ResearchWorkflow, intent: PaperIntent, status: PaperDecision["status"], message: string) {
   const decision: PaperDecision = {
     id: crypto.randomUUID(),
@@ -135,13 +121,6 @@ function appendDecision(sleeve: BotSleeve, workflow: ResearchWorkflow, intent: P
   return decision;
 }
 
-export function validateInstrument(instrument: string, strategy: PaperStrategy) {
-  if (strategy !== "long-option") throw new Error("Only long NIFTY options are permitted in this sandbox.");
-  const match = /^(NFO):(NIFTY[A-Z0-9_-]*(?:CE|PE))$/.exec(instrument);
-  if (!match) throw new Error("The intent must identify an exact NFO NIFTY CE or PE contract.");
-  return { exchange: "NFO" as const, symbol: match[2] };
-}
-
 export async function executeLatestPaperIntent(workflow: ResearchWorkflow) {
   return serial(async () => {
     const sleeve = await getBotSleeve();
@@ -151,14 +130,14 @@ export async function executeLatestPaperIntent(workflow: ResearchWorkflow) {
 
     if (intent.action === "NO_ACTION") {
       const decision = appendDecision(sleeve, workflow, intent, "no-action", intent.rationale || "The planner chose not to trade.");
-      await saveBotSleeve(sleeve);
-      return { decision, sleeve };
+      const savedSleeve = await saveBotSleeve(sleeve);
+      return { decision, sleeve: savedSleeve };
     }
 
     try {
       const age = Date.now() - new Date(workflow.completedAt).getTime();
-      if (!Number.isFinite(age) || age > 60 * 60_000) throw new Error("Research is older than one hour.");
-      if (intent.confidence < 65) throw new Error("Planner confidence is below the 65% paper-entry threshold.");
+      if (!Number.isFinite(age) || age < 0 || age > MAX_RESEARCH_AGE_MS) throw new Error("Research is invalid or older than one hour.");
+      if (intent.confidence < ENTRY_CONFIDENCE_MINIMUM) throw new Error(`Planner confidence is below the ${ENTRY_CONFIDENCE_MINIMUM}% paper-entry threshold.`);
       if (!intent.instrument) throw new Error("No exact tradable instrument was provided.");
       const clock = marketClock();
       if (!clock.open) throw new Error("The Indian cash market is closed; no simulated fill was created.");
@@ -168,28 +147,23 @@ export async function executeLatestPaperIntent(workflow: ResearchWorkflow) {
       const { exchange, symbol } = validateInstrument(intent.instrument, intent.strategy);
       const livePrice = (await getPrices([intent.instrument])).get(intent.instrument);
       if (!livePrice) throw new Error("A current Kite price was unavailable.");
-      if (!intent.stopLoss || intent.stopLoss >= livePrice) throw new Error("A valid stop below the current price is required.");
-      if (!intent.targetPrice || intent.targetPrice <= livePrice) throw new Error("A valid target above the current price is required.");
+      if (!intent.stopLoss || !intent.targetPrice) throw new Error("A stop and target are required.");
       if (intent.entryPrice && Math.abs(intent.entryPrice - livePrice) / livePrice > 0.03) throw new Error("Price moved more than 3% from the planner's reference.");
 
       const settings = await getRuntimeSettings();
-      const reserve = sleeve.capital * settings.cashReservePercent / 100;
-      const deployableCash = Math.max(0, sleeve.cash - reserve);
-      const positionCap = sleeve.capital * 0.35;
-      const permittedCapital = Math.min(deployableCash, positionCap, intent.maxCapital);
+      if (settings.paused) throw new Error("Simulation is paused.");
       const lot = await lotSize(intent.instrument, intent.strategy);
-      const fillPrice = livePrice * (1 + slippageRate(intent.strategy));
-      const perUnitRisk = intent.strategy === "long-option" ? fillPrice : fillPrice - intent.stopLoss;
-      const riskPercent = intent.strategy === "intraday" ? 0.01 : intent.strategy === "long-option" ? 0.10 : 0.02;
-      const riskBudget = sleeve.capital * riskPercent;
-      const affordableLots = Math.floor(permittedCapital / (fillPrice * lot));
-      const riskLots = Math.floor(riskBudget / (perUnitRisk * lot));
-      const quantity = Math.min(affordableLots, riskLots) * lot;
-      if (quantity < lot) throw new Error("The instrument cannot fit within capital, reserve, position and maximum-loss limits.");
-
-      const gross = fillPrice * quantity;
-      const entryCharges = charges(intent.strategy, "BUY", gross);
-      if (gross + entryCharges > deployableCash) throw new Error("Estimated fill and charges exceed deployable cash.");
+      const { fillPrice, quantity, gross, entryCharges } = planPaperEntry({
+        strategy: intent.strategy,
+        livePrice,
+        stopLoss: intent.stopLoss,
+        targetPrice: intent.targetPrice,
+        capital: sleeve.capital,
+        cash: sleeve.cash,
+        cashReservePercent: settings.cashReservePercent,
+        maxCapital: intent.maxCapital,
+        lotSize: lot,
+      });
       const now = new Date();
       const holdingMinutes = intent.strategy === "intraday" ? Math.min(intent.maxHoldingMinutes, 15 * 60 + 15 - clock.minutes) : intent.maxHoldingMinutes;
       const closeBy = new Date(now.getTime() + holdingMinutes * 60_000).toISOString();
@@ -245,13 +219,13 @@ export async function executeLatestPaperIntent(workflow: ResearchWorkflow) {
       sleeve.asOf = now.toISOString();
       sleeve.history.push({ timestamp: now.toISOString(), value: sleeve.currentValue, capital: sleeve.capital });
       const decision = appendDecision(sleeve, workflow, intent, "executed", `Paper bought ${quantity} ${symbol} at ${fillPrice.toFixed(2)} including simulated slippage.`);
-      await saveBotSleeve(sleeve);
-      return { decision, sleeve };
+      const savedSleeve = await saveBotSleeve(sleeve);
+      return { decision, sleeve: savedSleeve };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Paper risk validation failed.";
       const decision = appendDecision(sleeve, workflow, intent, "rejected", message);
-      await saveBotSleeve(sleeve);
-      return { decision, sleeve };
+      const savedSleeve = await saveBotSleeve(sleeve);
+      return { decision, sleeve: savedSleeve };
     }
   });
 }
@@ -259,7 +233,7 @@ export async function executeLatestPaperIntent(workflow: ResearchWorkflow) {
 function closePosition(sleeve: BotSleeve, position: PaperPosition, livePrice: number, reason: PaperTrade["reason"]) {
   const fillPrice = livePrice * (1 - slippageRate(position.strategy));
   const gross = fillPrice * position.quantity;
-  const exitCharges = charges(position.strategy, "SELL", gross);
+  const exitCharges = estimateCharges(position.strategy, "SELL", gross);
   const realisedPnl = gross - exitCharges - position.averagePrice * position.quantity - position.entryCharges;
   const trade: PaperTrade = {
     id: crypto.randomUUID(),
@@ -290,7 +264,11 @@ export async function reconcilePaperSleeve() {
     const clock = marketClock();
     const remaining: PaperPosition[] = [];
     for (const position of sleeve.positions) {
-      const price = prices.get(position.instrument) ?? position.lastPrice;
+      const price = prices.get(position.instrument);
+      if (!price) {
+        remaining.push(position);
+        continue;
+      }
       position.lastPrice = price;
       position.value = price * position.quantity;
       position.pnl = position.value - position.averagePrice * position.quantity - position.entryCharges;
@@ -319,7 +297,6 @@ export async function reconcilePaperSleeve() {
     if (!lastPoint || Date.now() - new Date(lastPoint.timestamp).getTime() >= 15 * 60_000 || Math.abs(lastPoint.value - sleeve.currentValue) >= 1) {
       sleeve.history = [...sleeve.history, { timestamp: sleeve.asOf, value: sleeve.currentValue, capital: sleeve.capital }].slice(-500);
     }
-    await saveBotSleeve(sleeve);
-    return sleeve;
+    return saveBotSleeve(sleeve);
   });
 }

@@ -17,6 +17,7 @@ export const demoPortfolio: LivePortfolio = {
 };
 
 export const demoSleeve: BotSleeve = {
+  revision: 1,
   capital: 10000,
   cash: 6842,
   invested: 3337.5,
@@ -44,7 +45,6 @@ export const demoSleeve: BotSleeve = {
     closeBy: "2026-09-12T09:45:00.000Z",
     workflowId: "demo-workflow",
     entryCharges: 8,
-    environment: "paper",
     exitPlan: { type: "two-leg-gtt", product: "NRML", lowerTrigger: 32, lowerLimit: 31.84, upperTrigger: 62, upperLimit: 61.69, status: "active" },
   }],
   trades: [{
