@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeMutation } from "@/lib/request-security";
 import { getRuntimeSettings, saveRuntimeSettings } from "@/lib/runtime-store";
+import { workspaceTransaction } from "@/lib/workspace-store";
 
 const MIN_CAPITAL = 10_000;
 const MAX_CAPITAL = 100_000_000;
@@ -37,7 +38,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const settings = await saveRuntimeSettings(patch);
+    // A global stop must not queue behind a slow market-data cycle. Fail closed
+    // if a simultaneous capital change is later rejected.
+    if (patch.paused === true) await saveRuntimeSettings({ paused: true });
+    if (patch.capital === undefined) {
+      return NextResponse.json({ ...await saveRuntimeSettings(patch), saved: true }, { headers: NO_STORE });
+    }
+    const settings = await workspaceTransaction(async state => {
+      const allocated = state.algorithms.reduce((sum, algorithm) => sum + algorithm.budget, 0);
+      if (patch.capital !== undefined && patch.capital < allocated) throw new Error("Paper capital cannot be less than allocated algorithm budgets.");
+      return saveRuntimeSettings(patch);
+    }, false);
     return NextResponse.json({ ...settings, saved: true }, { headers: NO_STORE });
   } catch (error) {
     return NextResponse.json(

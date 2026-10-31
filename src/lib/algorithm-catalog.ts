@@ -1,0 +1,14 @@
+import type { Algorithm } from "./workspace-types";
+export type Strategy = Algorithm["strategy"];
+export const algorithmPresets: Array<{ strategy: Strategy; name: string; category: string; entry: string; exit: string; history: string; risk: string; stop: number; target: number; source: string }> = [
+  { strategy: "orb", name: "15-minute opening range breakout", category: "NIFTY / BANKNIFTY options · intraday", entry: "Use the index's 09:15–09:30 range. A completed 5-minute close crossing above its high buys an ATM Call (CE); crossing below its low buys an ATM Put (PE).", exit: "Premium stop/target, index close back inside the breakout boundary, or the 15:15 IST time exit.", history: "Today's complete opening-range candles and a later completed breakout candle", risk: "False breakouts, spreads, gaps and option time decay can cause losses. Full premium is at risk.", stop: 20, target: 40, source: "https://www.investopedia.com/terms/o/openingrange.asp" },
+  { strategy: "ema-crossover", name: "EMA 20/50 index crossover", category: "NIFTY / BANKNIFTY options · trend", entry: "On completed 5-minute INDEX candles, EMA20 crossing above EMA50 buys an ATM CE; crossing below buys an ATM PE. Never apply the index signal to a stock or to the option's own chart.", exit: "Opposite EMA alignment, premium stop/target, or 15:15 IST.", history: "100 completed five-minute index bars for warm-up", risk: "Sideways markets can whipsaw; option premiums may fall despite a correct index direction because of theta or volatility changes.", stop: 20, target: 40, source: "https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/ema" },
+  { strategy: "rsi-momentum", name: "RSI(14) index momentum", category: "NIFTY / BANKNIFTY options · momentum", entry: "Index RSI(14) crossing above 55 buys an ATM CE; crossing below 45 buys an ATM PE, using completed 5-minute index candles.", exit: "Index RSI below 50 exits CE; above 50 exits PE. Premium stop/target and 15:15 time exit also apply.", history: "100 completed five-minute index bars for Wilder RSI warm-up", risk: "Momentum can reverse quickly. Signals are not a performance guarantee; slippage and full-premium losses are possible.", stop: 20, target: 40, source: "https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/RSI" },
+];
+export function strategyLabel(strategy: Strategy) {
+  return algorithmPresets.find(p => p.strategy === strategy)?.name || ({ dip: "Legacy buy-the-dip", momentum: "Legacy momentum", "sma-cross": "Legacy daily SMA", rsi: "Legacy daily RSI", "channel-breakout": "Legacy daily channel" } as Partial<Record<Strategy, string>>)[strategy] || "Unknown strategy";
+}
+// Retained for historical equity research helpers only, not algorithm execution.
+export function isIndicatorStrategy(strategy: Strategy) {
+  return strategy === "sma-cross" || strategy === "rsi" || strategy === "channel-breakout";
+}

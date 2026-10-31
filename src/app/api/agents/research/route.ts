@@ -4,6 +4,7 @@ import { getLatestResearch, saveLatestResearch } from "@/lib/research-store";
 import { authorizeMutation } from "@/lib/request-security";
 import { getRuntimeSettings } from "@/lib/runtime-store";
 import type { ResearchWorkflow } from "@/lib/types";
+import { workspaceTransaction, logEvent } from "@/lib/workspace-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Please wait five minutes before starting another full research workflow." }, { status: 429 });
   }
 
-  const run = runResearchWorkflow();
+  const run = (async () => {
+    await workspaceTransaction(state => { logEvent(state, "research", "Research workflow started", "Collecting current evidence; no brokerage execution tools available."); });
+    return runResearchWorkflow();
+  })();
   globalResearch.niveshResearchRun = run;
   globalResearch.niveshLastResearchAt = Date.now();
 
@@ -55,9 +59,13 @@ export async function POST(request: NextRequest) {
     const result = await run;
     await saveLatestResearch(result);
     globalResearch.niveshLatestResearch = result;
+    await workspaceTransaction(state => {
+      logEvent(state, "research", `Research ${result.id}: completed`, JSON.stringify(result));
+    });
     return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("Pi research workflow failed:", error instanceof Error ? error.message : "Unknown error");
+    await workspaceTransaction(state => { logEvent(state, "research", "Research failed. No trade action taken."); }).catch(() => undefined);
     return NextResponse.json(
       { error: "The pi research workflow could not complete. No trade action was taken." },
       { status: 502, headers: { "cache-control": "no-store" } },

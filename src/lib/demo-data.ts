@@ -1,4 +1,5 @@
 import type { BotSleeve, LivePortfolio, ResearchWorkflow } from "@/lib/types";
+import { normalizeMutualFunds } from "@/lib/mutual-funds";
 
 const demoNow = "2026-09-10T10:30:00.000Z";
 
@@ -15,6 +16,12 @@ export const demoPortfolio: LivePortfolio = {
   asOf: demoNow,
   source: "kite",
 };
+
+// Explicitly fictional fixtures, used only in the labelled ?demo=1 view.
+export const demoMutualFunds = normalizeMutualFunds([
+  { fund: "Example Flexicap Fund · Direct Growth", tradingsymbol: "DEMO-EQUITY", folio: "DEMO1001", quantity: 150.1234, average_price: 50, last_price: 57.5, last_price_date: "2026-09-09", pledged_quantity: 0 },
+  { fund: "Example Short Duration Fund · Direct Growth", tradingsymbol: "DEMO-DEBT", folio: "DEMO1002", quantity: 2500.25, average_price: 10.85, last_price: 11.2345, last_price_date: "2026-09-09", pledged_quantity: 10 },
+], demoNow);
 
 export const demoSleeve: BotSleeve = {
   revision: 1,
